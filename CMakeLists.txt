@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.18)
 project(libtpa C)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
+
 set(TPA_VERSION "1.0-rc0" CACHE STRING "libtpa version string")
 option(WITH_XDP "Enable AF_XDP control plane support" OFF)
 
@@ -8,7 +10,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT DEFINED WITH_XDP)
   set(WITH_XDP ON)
 endif()
 
-find_package(DPDK REQUIRED)
+find_package(DPDK CONFIG QUIET)
+if(NOT DPDK_FOUND)
+  find_package(DPDK REQUIRED MODULE)
+endif()
 
 set(TPA_SOURCES
   lib/utils.c

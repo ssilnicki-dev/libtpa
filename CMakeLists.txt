@@ -5,6 +5,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(TPA_VERSION "1.0-rc0" CACHE STRING "libtpa version string")
 find_package(PkgConfig REQUIRED)
+find_package(Threads REQUIRED)
 pkg_check_modules(DPDK QUIET IMPORTED_TARGET dpdk)
 if(NOT DPDK_FOUND)
   pkg_check_modules(DPDK REQUIRED IMPORTED_TARGET libdpdk)
@@ -62,6 +63,18 @@ target_include_directories(tpa
 )
 
 target_link_libraries(tpa PUBLIC PkgConfig::DPDK)
+add_executable(tpad
+  tpad/tpad.c
+  tpad/tpad_sock.c
+)
+
+target_compile_features(tpad PRIVATE c_std_11)
+target_compile_options(tpad PRIVATE -Wno-format-truncation)
+target_include_directories(tpad PRIVATE
+  ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/tpad
+)
+target_link_libraries(tpad PRIVATE PkgConfig::DPDK tpa Threads::Threads)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
   target_compile_definitions(tpa PRIVATE TPA_FREEBSD=1)
@@ -76,4 +89,3 @@ if(CMAKE_EXPORT_COMPILE_COMMANDS)
     VERBATIM
   )
 endif()
-

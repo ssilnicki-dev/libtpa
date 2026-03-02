@@ -11,77 +11,76 @@
 
 #include "cfg.h"
 
-#define NR_RX_DESC			4096
-#define NR_TX_DESC			4096
+#define NR_RX_DESC 4096
+#define NR_TX_DESC 4096
 
-#define BATCH_SIZE			64
-#define TXQ_BUF_SIZE			4096
+#define BATCH_SIZE 64
+#define TXQ_BUF_SIZE 4096
 
-#define PORT_RXQ_SIZE			NR_RX_DESC
-#define PORT_RXQ_MASK			(PORT_RXQ_SIZE - 1)
-#define MAX_PORT_NR			2
+#define PORT_RXQ_SIZE NR_RX_DESC
+#define PORT_RXQ_MASK (PORT_RXQ_SIZE - 1)
+#define MAX_PORT_NR 2
 
+#define TX_OFFLOAD_IPV4_CKSUM (1u << 0)
+#define TX_OFFLOAD_TCP_CKSUM (1u << 1)
+#define TX_OFFLOAD_TSO (1u << 2)
+#define TX_OFFLOAD_MULTI_SEG (1u << 3)
+#define TX_OFFLOAD_PSEUDO_HDR_CKSUM (1u << 4)
 
-#define TX_OFFLOAD_IPV4_CKSUM		(1u << 0)
-#define TX_OFFLOAD_TCP_CKSUM		(1u << 1)
-#define TX_OFFLOAD_TSO			(1u << 2)
-#define TX_OFFLOAD_MULTI_SEG		(1u << 3)
-#define TX_OFFLOAD_PSEUDO_HDR_CKSUM	(1u << 4)
+#define RX_OFFLOAD_PACKET_TYPE (1u << 10)
 
-#define RX_OFFLOAD_PACKET_TYPE		(1u << 10)
-
-#define FLOW_OFFLOAD			(1u << 16)
-#define EXTERNAL_MEM_REGISTRATION	(1u << 17)
+#define FLOW_OFFLOAD (1u << 16)
+#define EXTERNAL_MEM_REGISTRATION (1u << 17)
 
 struct port_txq {
-	uint16_t nr_pkt;
-	uint64_t nr_dropped;
-	struct packet *pkts[TXQ_BUF_SIZE];
+    uint16_t nr_pkt;
+    uint64_t nr_dropped;
+    struct packet *pkts[TXQ_BUF_SIZE];
 } __rte_cache_aligned;
 
 struct port_rxq {
-	uint32_t write;
-	uint32_t read;
-	struct packet *pkts[PORT_RXQ_SIZE];
+    uint32_t write;
+    uint32_t read;
+    struct packet *pkts[PORT_RXQ_SIZE];
 } __rte_cache_aligned;
 
-#define PORT_INFO_LEN		128
+#define PORT_INFO_LEN 128
 
 enum {
-	PORT_LINK_DOWN,
-	PORT_LINK_UP,
+    PORT_LINK_DOWN,
+    PORT_LINK_UP,
 };
 
 enum {
-	NIC_TYPE_MLNX = 1,
-	NIC_TYPE_IAVF,
-	NIC_TYPE_AF_XDP,
-	NIC_TYPE_UNKNOWN,
+    NIC_TYPE_MLNX = 1,
+    NIC_TYPE_IAVF,
+    NIC_TYPE_AF_XDP,
+    NIC_TYPE_UNKNOWN,
 };
 
 struct nic_spec {
-	char *name;
-	int type;
-	uint32_t rx_burst_cap;
-	uint32_t pkt_max_chain;
-	uint32_t write_chunk_size;
+    char *name;
+    int type;
+    uint32_t rx_burst_cap;
+    uint32_t pkt_max_chain;
+    uint32_t write_chunk_size;
 };
 
 struct dpdk_port {
-	uint16_t port_id;
-	uint16_t nr_queue;
-	int state;
+    uint16_t port_id;
+    uint16_t nr_queue;
+    int state;
 
-	uint32_t nr_rx_burst;
-	uint32_t caps;
+    uint32_t nr_rx_burst;
+    uint32_t caps;
 
-	struct port_txq *txq;
-	struct port_rxq *rxq;
+    struct port_txq *txq;
+    struct port_rxq *rxq;
 
-	char name[PORT_INFO_LEN];
-	char device_id[PORT_INFO_LEN];
+    char name[PORT_INFO_LEN];
+    char device_id[PORT_INFO_LEN];
 
-	struct nic_spec *nic_spec;
+    struct nic_spec *nic_spec;
 } __rte_cache_aligned;
 
 extern struct dpdk_port *dpdk_ports;

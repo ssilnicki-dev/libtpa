@@ -12,27 +12,27 @@
 #include "worker.h"
 #include "ip.h"
 
-#define NEIGH_QUEUE_LEN		1024
+#define NEIGH_QUEUE_LEN 1024
 
-#define ND_SKIP		-2
+#define ND_SKIP -2
 
 /*
  * TODO: get rid of the count limit and use hash for search
  */
-#define MAX_NEIGH_ENTRY	512
+#define MAX_NEIGH_ENTRY 512
 
 struct neigh_entry {
-	struct tpa_ip ip;
-	struct rte_ether_addr mac;
+    struct tpa_ip ip;
+    struct rte_ether_addr mac;
 
-	uint64_t last_update;
+    uint64_t last_update;
 };
 
 struct neigh_ops {
-	int (*nd_init)(void);
-	int (*nd_solicit)(struct tpa_ip *ip, struct tpa_worker *worker);
-	int (*nd_solicit_by_socket)(int fd, struct tpa_ip *ip);
-	int (*nd_handle_reply)(uint8_t *packet, size_t len);
+    int (*nd_init)(void);
+    int (*nd_solicit)(struct tpa_ip *ip, struct tpa_worker *worker);
+    int (*nd_solicit_by_socket)(int fd, struct tpa_ip *ip);
+    int (*nd_handle_reply)(uint8_t *packet, size_t len);
 };
 
 void neigh_init(void);
@@ -51,18 +51,16 @@ void neigh_dump(struct shell_buf *reply);
 /* XXX: this probably should be reworked with callback */
 void flush_tcp_packet(struct packet *pkt, int err);
 
-static inline struct neigh_entry *neigh_find_ip4(uint32_t ip4)
-{
-	struct tpa_ip ip;
+static inline struct neigh_entry *neigh_find_ip4(uint32_t ip4) {
+    struct tpa_ip ip;
 
-	return neigh_find(tpa_ip_set_ipv4(&ip, ip4));
+    return neigh_find(tpa_ip_set_ipv4(&ip, ip4));
 }
 
 /* arp.c */
 int arp_input(struct tpa_worker *worker, struct packet *pkt);
 int arp_handle_reply(uint8_t *packet, size_t len);
 extern const struct neigh_ops arp_ops;
-
 
 /* ndp.c */
 extern const struct neigh_ops ndp_ops;

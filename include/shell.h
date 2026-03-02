@@ -8,34 +8,32 @@
 
 #include <stdint.h>
 
-#define SHELL_NAME_SIZE	64
-#define SHELL_DATA_SIZE	(1<<20)
+#define SHELL_NAME_SIZE 64
+#define SHELL_DATA_SIZE (1 << 20)
 
 struct shell_buf_hdr {
-	char name[SHELL_NAME_SIZE];
-	int len;
-	int ret;
+    char name[SHELL_NAME_SIZE];
+    int len;
+    int ret;
 } __attribute__((packed));
 
 struct shell_buf {
-	struct shell_buf_hdr hdr;
-	char data[SHELL_DATA_SIZE - sizeof(struct shell_buf_hdr)];
+    struct shell_buf_hdr hdr;
+    char data[SHELL_DATA_SIZE - sizeof(struct shell_buf_hdr)];
 } __attribute__((packed));
 
 struct shell_cmd_info {
-	int argc;
-	char **argv;
-	struct shell_buf *reply;
+    int argc;
+    char **argv;
+    struct shell_buf *reply;
 };
 
 struct shell_cmd {
-	const char *name;
-	int (*handler)(struct shell_cmd_info *cmd);
+    const char *name;
+    int (*handler)(struct shell_cmd_info *cmd);
 };
 
-#define shell_append_reply(r, ...)		\
-	r->hdr.len += tpa_snprintf(r->data + r->hdr.len, sizeof(r->data) - r->hdr.len, \
-			        __VA_ARGS__)
+#define shell_append_reply(r, ...) r->hdr.len += tpa_snprintf(r->data + r->hdr.len, sizeof(r->data) - r->hdr.len, __VA_ARGS__)
 
 int shell_init(void);
 int shell_start(void);

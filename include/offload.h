@@ -10,27 +10,25 @@
 
 #include <rte_flow.h>
 
-#define OFFLOAD_NAME_SIZE		256
+#define OFFLOAD_NAME_SIZE 256
 
 struct offload {
-	int port;
-	struct rte_flow *flow;
+    int port;
+    struct rte_flow *flow;
 
-	TAILQ_ENTRY(offload) node;
+    TAILQ_ENTRY(offload) node;
 };
 
 struct offload_list {
-	char *name;
+    char *name;
 
-	TAILQ_HEAD(, offload) head;
+    TAILQ_HEAD(, offload) head;
 };
 
-static inline void offload_list_init(struct offload_list *list)
-{
-	TAILQ_INIT(&list->head);
-	list->name = NULL;
+static inline void offload_list_init(struct offload_list *list) {
+    TAILQ_INIT(&list->head);
+    list->name = NULL;
 }
-
 
 int offload_init(void);
 

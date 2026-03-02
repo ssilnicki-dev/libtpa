@@ -13,24 +13,24 @@
 #include "timer.h"
 
 /* TODO: make it configurable */
-#define DEFAULT_PORT_BLOCK_SIZE		64
-#define DEFAULT_PORT_BLOCK_MASK		(64 - 1)
+#define DEFAULT_PORT_BLOCK_SIZE 64
+#define DEFAULT_PORT_BLOCK_MASK (64 - 1)
 
-#define MAX_PORT_BLOCK_PER_WORKER	((1<<16) / DEFAULT_PORT_BLOCK_SIZE)
+#define MAX_PORT_BLOCK_PER_WORKER ((1 << 16) / DEFAULT_PORT_BLOCK_SIZE)
 
 struct tpa_worker;
 struct port_block {
-	uint16_t start;
-	uint16_t end;
-	uint16_t size;
-	uint16_t mask;
-	int refcnt;
+    uint16_t start;
+    uint16_t end;
+    uint16_t size;
+    uint16_t mask;
+    int refcnt;
 
-	uint16_t port_mask;
-	struct tpa_worker *worker;
+    uint16_t port_mask;
+    struct tpa_worker *worker;
 
-	struct offload_list offload_list;
-	struct timer timer;
+    struct offload_list offload_list;
+    struct timer timer;
 };
 
 int local_port_range_set(struct cfg_spec *spec, const char *val);

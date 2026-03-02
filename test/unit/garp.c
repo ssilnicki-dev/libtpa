@@ -10,27 +10,28 @@
 #include "test_utils.h"
 #include "neigh.h"
 
-static void test_garp_basic(void)
-{
-	struct packet *pkt;
-	struct neigh_entry *entry;
-	uint8_t mac[6] = { 0, };
-	uint32_t ip = 0x12345678;
+static void test_garp_basic(void) {
+    struct packet *pkt;
+    struct neigh_entry *entry;
+    uint8_t mac[6] = {
+        0,
+    };
+    uint32_t ip = 0x12345678;
 
-	printf("testing %s\n", __func__);
+    printf("testing %s\n", __func__);
 
-	pkt = make_arp_rsp_pkt(ip, mac);
-	ut_arp_handle_reply(pkt); {
-		entry = neigh_find_ip4(ip);
-		assert(entry == NULL);
-	}
+    pkt = make_arp_rsp_pkt(ip, mac);
+    ut_arp_handle_reply(pkt);
+    {
+        entry = neigh_find_ip4(ip);
+        assert(entry == NULL);
+    }
 }
 
-int main(int argc, char *argv[])
-{
-	ut_init(argc, argv);
+int main(int argc, char *argv[]) {
+    ut_init(argc, argv);
 
-	test_garp_basic();
+    test_garp_basic();
 
-	return 0;
+    return 0;
 }

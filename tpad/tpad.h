@@ -7,11 +7,11 @@
 #define _TPAD_H_
 
 struct tpad {
-	char *name;
-	char *sock_file;
-	char *sock_trace_file;
-	char *eth_dev;
-	char *archive_dir;
+    char *name;
+    char *sock_file;
+    char *sock_trace_file;
+    char *eth_dev;
+    char *archive_dir;
 };
 
 extern struct tpad tpad;

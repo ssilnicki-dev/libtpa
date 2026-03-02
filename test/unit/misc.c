@@ -7,23 +7,21 @@
 
 #include "test_utils.h"
 
-static void test_log2_ceil(void)
-{
-	printf("testing %s ...\n", __func__);
+static void test_log2_ceil(void) {
+    printf("testing %s ...\n", __func__);
 
-	assert(log2_ceil(1) == 1);
-	assert(log2_ceil(2) == 1);
-	assert(log2_ceil(3) == 2);
-	assert(log2_ceil(4) == 2);
-	assert(log2_ceil(5) == 3);
-	assert(log2_ceil(8) == 3);
-	assert(log2_ceil(9) == 4);
-	assert(log2_ceil(16) == 4);
+    assert(log2_ceil(1) == 1);
+    assert(log2_ceil(2) == 1);
+    assert(log2_ceil(3) == 2);
+    assert(log2_ceil(4) == 2);
+    assert(log2_ceil(5) == 3);
+    assert(log2_ceil(8) == 3);
+    assert(log2_ceil(9) == 4);
+    assert(log2_ceil(16) == 4);
 }
 
-int main(int argc, char *argv[])
-{
-	test_log2_ceil();
+int main(int argc, char *argv[]) {
+    test_log2_ceil();
 
-	return 0;
+    return 0;
 }

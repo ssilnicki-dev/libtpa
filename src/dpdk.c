@@ -40,7 +40,6 @@ static inline int numa_node_of_cpu(int cpu) {
 #include "packet.h"
 #include "dev.h"
 #include "dpdk_compat.h"
-#include "xdp_ctrl.h"
 
 #define RX_OFFLOAD (DEV_RX_OFFLOAD_IPV4_CKSUM | DEV_RX_OFFLOAD_TCP_CKSUM)
 #define TX_OFFLOAD (DEV_TX_OFFLOAD_IPV4_CKSUM | DEV_TX_OFFLOAD_TCP_CKSUM | DEV_TX_OFFLOAD_MULTI_SEGS | DEV_TX_OFFLOAD_TCP_TSO)
@@ -86,11 +85,6 @@ static struct nic_spec nic_spec_list[] = {
 
         /* IAVF just has 14 bits for desc len */
         .write_chunk_size = (1 << 14) - 1,
-    },
-    {
-        .name = "net_af_xdp",
-        .type = NIC_TYPE_AF_XDP,
-        .rx_burst_cap = 64,
     },
 };
 
@@ -307,8 +301,6 @@ static uint32_t translate_caps(uint64_t dpdk_offloads, int nic_type) {
         ret |= RX_OFFLOAD_PACKET_TYPE;
         ret |= FLOW_OFFLOAD;
     }
-    if (nic_type == NIC_TYPE_AF_XDP) ret |= FLOW_OFFLOAD;
-
     return ret;
 }
 
@@ -734,44 +726,6 @@ static int parse_key_value(const char *str, const char *key, char *val, int val_
     return 0;
 }
 
-static void detect_xdp_prog(void) {
-    int prog_id;
-
-    prog_id = xdp_prog_id_query(dev.name);
-    if (prog_id <= 0) return;
-
-    if (xdp_prog_detach(dev.name) < 0)
-        fprintf(stderr,
-                "dev %s has been attached xdp prog %d, "
-                "you can use \"ip link set dev %s xdp off\" to detach it\n",
-                dev.name, prog_id, dev.name);
-}
-
-static inline int xdp_precheck(void) {
-    char extra_args[PATH_MAX];
-    char val[128];
-    char *p;
-
-    tpa_snprintf(extra_args, sizeof(extra_args), "%s", dpdk_cfg.extra_args);
-
-    p = strstr(extra_args, "net_af_xdp");
-    if (!p) return 0;
-
-    if (parse_key_value(p, "iface", val, sizeof(val)) < 0) {
-        LOG_ERR("failed to parse iface on dpdk extra args");
-        return -1;
-    }
-
-    if (strcmp(dev.name, val) != 0) {
-        LOG_ERR("iface %s and dev name %s do not match", val, dev.name);
-        return -1;
-    }
-
-    detect_xdp_prog();
-
-    return 0;
-}
-
 static int parse_dpdk_args(struct dpdk_args *args) {
     static char file_prefix[PATH_MAX];
     char *tpa_master_core;
@@ -841,10 +795,6 @@ void dpdk_init(int nr_queue) {
 
     cfg_spec_register(dpdk_cfg_specs, ARRAY_SIZE(dpdk_cfg_specs));
     cfg_section_parse("dpdk");
-
-#ifdef WITH_XDP
-    if (xdp_precheck() < 0) rte_panic("failed to pass xdp precheck");
-#endif
 
     eal_init();
     mbuf_mempool_init();

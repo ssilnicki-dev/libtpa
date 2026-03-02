@@ -12,9 +12,6 @@
 #include <netinet/in.h>
 #include <netinet/if_ether.h>
 #include <ifaddrs.h>
-#if defined(__linux__)
-#include <linux/if_packet.h>
-#endif
 #include <net/if.h>
 
 #include <rte_ethdev.h>
@@ -63,9 +60,7 @@ static void arp_init_hdr(struct arp_solicit_hdr *hdr, struct tpa_ip *ip) {
     memcpy(&hdr->arp, &arp, sizeof(arp));
 }
 
-/*
- * injecting ARP request by DPDK and recv it by the AF_PACKET socket.
- */
+/* injecting ARP request by DPDK and recv it by a control socket. */
 static int arp_solicit(struct tpa_ip *ip, struct tpa_worker *worker) {
     struct arp_solicit_hdr *hdr;
     struct packet *pkt;
@@ -89,27 +84,10 @@ static int arp_solicit(struct tpa_ip *ip, struct tpa_worker *worker) {
 }
 
 static int arp_solicit_by_socket(int fd, struct tpa_ip *ip) {
-#if defined(__linux__)
-    struct arp_solicit_hdr hdr;
-    struct sockaddr_ll addr;
-
-    arp_init_hdr(&hdr, ip);
-
-    memset(&addr, 0, sizeof(addr));
-    addr.sll_ifindex = if_nametoindex(dev.name);
-
-    if (sendto(fd, &hdr, sizeof(hdr), 0, (struct sockaddr *)&addr, sizeof(addr)) < sizeof(hdr)) {
-        LOG_WARN("failed to send arp request: %s", strerror(errno));
-        return -1;
-    }
-
-    return 0;
-#else
     (void)fd;
     (void)ip;
     errno = ENOTSUP;
     return -1;
-#endif
 }
 
 int arp_handle_reply(uint8_t *pkt, size_t len) {
@@ -198,71 +176,15 @@ int arp_input(struct tpa_worker *worker, struct packet *pkt) {
     return ret;
 }
 
-static char *skip_word(char *p) {
-    while (*p && *p == ' ')
-        p++;
-
-    while (*p && *p != ' ')
-        p++;
-
-    while (*p && *p == ' ')
-        p++;
-
-    return p;
-}
-
-static char *skip_words(char *p, int count) {
-    while (count--)
-        p = skip_word(p);
-
-    return p;
-}
-
 static void arp_cache_init(void) {
-    FILE *f;
-    union {
-        uint32_t raw;
-        uint8_t bytes[4];
-    } ip4;
     struct tpa_ip ip;
-    uint8_t mac[6];
-    char buf[1024];
-    char *eth;
-    char *p;
 
     if (getenv("TPA_ARP_SKIP_CACHE_INIT")) return;
 
-#if defined(__linux__)
-    f = fopen("/proc/net/arp", "r");
-    if (!f) {
-        LOG_ERR("failed to open neigh proc file");
-        return;
-    }
-#else
-    LOG_WARN("ARP cache bootstrap is not implemented on this platform");
-    return;
-#endif
-
-    while (fgets(buf, sizeof(buf), f)) {
-        if (sscanf(buf, "%hhu.%hhu.%hhu.%hhu", &ip4.bytes[0], &ip4.bytes[1], &ip4.bytes[2], &ip4.bytes[3]) != 4) continue;
-
-        p = skip_words(buf, 3);
-        if (sscanf(p, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]) != 6) continue;
-
-        if (strlen(dev.name)) {
-            eth = skip_words(p, 2);
-            p = strchr(eth, '\n');
-            if (p) *p = '\0';
-            if (strcmp(eth, dev.name)) continue;
-        }
-
-        neigh_update(tpa_ip_set_ipv4(&ip, ip4.raw), mac);
-    }
+    LOG_WARN("ARP cache bootstrap is not implemented on FreeBSD");
 
     /* for supporting loopback mode */
     neigh_update(tpa_ip_set_ipv4(&ip, dev.ip4), dev.mac.addr_bytes);
-
-    fclose(f);
 }
 
 static int cmd_arp(struct shell_cmd_info *cmd) {
@@ -282,12 +204,8 @@ static int arp_init(void) {
     arp_cache_init();
     shell_register_cmd(&arp);
 
-#if defined(__linux__)
-    return socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
-#else
     errno = ENOTSUP;
     return -1;
-#endif
 }
 
 const struct neigh_ops arp_ops = {

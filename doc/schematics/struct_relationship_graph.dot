@@ -92,9 +92,6 @@ digraph struct_relationship_graph {
   "vstats";
   "vstats8_max";
   "write_ctx";
-  "xdp_flow";
-  "xdp_map";
-  "xdp_prog";
   "xmit_ctx";
   "archive_ctx" -> "archive_map";
   "archive_map" -> "archive_map_entry";
@@ -200,5 +197,4 @@ digraph struct_relationship_graph {
   "tsock_trace" -> "trace_record";
   "tsock_trace_ctrl" -> "archive_map";
   "tx_desc_pool" -> "tx_desc";
-  "xdp_prog" -> "xdp_map";
 }

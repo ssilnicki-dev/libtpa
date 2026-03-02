@@ -48,9 +48,6 @@ BINS += flex_fifo
 BINS += archive
 BINS += utils
 
-ifeq ($(WITH_XDP), yes)
-BINS += xdp
-endif
 
 BINS += arp
 BINS += garp

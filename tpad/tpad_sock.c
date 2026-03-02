@@ -8,8 +8,10 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#if defined(__linux__)
 #include <netpacket/packet.h>
 #include <net/if.h>
+#endif
 #include <libgen.h>
 
 #include <rte_ether.h>
@@ -38,6 +40,7 @@ static void calc_csum(struct eth_ip_hdr *net_hdr, struct rte_tcp_hdr *tcp) {
     }
 }
 
+#if defined(__linux__)
 static void terminate_one_sock(struct tcp_sock *tsock, int fd, int ifindex) {
     struct eth_ip_hdr *net_hdr;
     struct rte_tcp_hdr *tcp;
@@ -78,6 +81,7 @@ static void terminate_one_sock(struct tcp_sock *tsock, int fd, int ifindex) {
         LOG_WARN("failed to terminate tsock %d: %s", tsock->sid, strerror(errno));
     }
 }
+#endif
 
 static void tpad_symlink(const char *target, const char *linkpath) {
     if (symlink(target, linkpath) < 0) {
@@ -87,12 +91,8 @@ static void tpad_symlink(const char *target, const char *linkpath) {
 
 void sock_termination(void) {
     struct archive_ctx ctx;
-    struct tcp_sock *tsock;
     struct mem_file *mem_file;
     uint64_t id;
-    int ifindex;
-    int fd;
-    int i;
 
     mem_file = mem_file_map(tpad.sock_file, NULL, MEM_FILE_READ);
     if (!mem_file) return;
@@ -103,28 +103,39 @@ void sock_termination(void) {
 
     if (id != UINT64_MAX) tpad_symlink(archive_path(&ctx, id), tpad.sock_file);
 
-    ifindex = if_nametoindex(tpad.eth_dev);
-    if (ifindex == 0) {
-        LOG_WARN("skip sock termination due to failed to get ifindex for %s: %s", tpad.eth_dev, strerror(errno));
-        return;
-    }
+#if defined(__linux__)
+    {
+        struct tcp_sock *tsock;
+        int ifindex;
+        int fd;
+        int i;
 
-    /*
-     * setting protocol to 0 here means we'd like to recv
-     * no pkts from kernel
-     */
-    fd = socket(AF_PACKET, SOCK_RAW, 0);
-    if (fd == -1) {
-        LOG_WARN("failed to create AF_PACKET: %s", strerror(errno));
-        return;
-    }
+        ifindex = if_nametoindex(tpad.eth_dev);
+        if (ifindex == 0) {
+            LOG_WARN("skip sock termination due to failed to get ifindex for %s: %s", tpad.eth_dev, strerror(errno));
+            return;
+        }
 
-    sock_ctrl = mem_file_data(mem_file);
-    for (i = 0; i < sock_ctrl->nr_max_sock; i++) {
-        tsock = &sock_ctrl->socks[i];
+        /*
+         * setting protocol to 0 here means we'd like to recv
+         * no pkts from kernel
+         */
+        fd = socket(AF_PACKET, SOCK_RAW, 0);
+        if (fd == -1) {
+            LOG_WARN("failed to create AF_PACKET: %s", strerror(errno));
+            return;
+        }
 
-        if (tsock->sid >= 0 && tsock->state == TCP_STATE_ESTABLISHED) terminate_one_sock(tsock, fd, ifindex);
+        sock_ctrl = mem_file_data(mem_file);
+        for (i = 0; i < sock_ctrl->nr_max_sock; i++) {
+            tsock = &sock_ctrl->socks[i];
+
+            if (tsock->sid >= 0 && tsock->state == TCP_STATE_ESTABLISHED) terminate_one_sock(tsock, fd, ifindex);
+        }
     }
+#else
+    LOG_WARN("skip sock termination: unsupported platform");
+#endif
 }
 
 /* XXX: de-duplicate */

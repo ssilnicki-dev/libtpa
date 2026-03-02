@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 project(libtpa C)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
-
 set(TPA_VERSION "1.0-rc0" CACHE STRING "libtpa version string")
 option(WITH_XDP "Enable AF_XDP control plane support" OFF)
 
@@ -10,9 +8,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT DEFINED WITH_XDP)
   set(WITH_XDP ON)
 endif()
 
-find_package(DPDK CONFIG QUIET)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(DPDK QUIET IMPORTED_TARGET dpdk)
 if(NOT DPDK_FOUND)
-  find_package(DPDK REQUIRED MODULE)
+  pkg_check_modules(DPDK REQUIRED IMPORTED_TARGET libdpdk)
 endif()
 
 set(TPA_SOURCES
@@ -69,13 +68,7 @@ target_include_directories(tpa
     ${CMAKE_BINARY_DIR}/generated/include
 )
 
-if(TARGET DPDK::dpdk)
-  target_link_libraries(tpa PUBLIC DPDK::dpdk)
-elseif(TARGET dpdk)
-  target_link_libraries(tpa PUBLIC dpdk)
-else()
-  message(FATAL_ERROR "find_package(DPDK) succeeded but no DPDK target was exported")
-endif()
+target_link_libraries(tpa PUBLIC PkgConfig::DPDK)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
   target_compile_definitions(tpa PRIVATE TPA_FREEBSD=1)

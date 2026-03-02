@@ -63,6 +63,19 @@ target_include_directories(tpa
 
 target_link_libraries(tpa PUBLIC PkgConfig::DPDK)
 
+add_executable(tpad
+  tpad/tpad.c
+  tpad/tpad_sock.c
+)
+
+target_compile_features(tpad PRIVATE c_std_11)
+target_compile_options(tpad PRIVATE -Wno-format-truncation)
+target_include_directories(tpad PRIVATE
+  ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/tpad
+)
+target_link_libraries(tpad PRIVATE tpa)
+
 if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
   target_compile_definitions(tpa PRIVATE TPA_FREEBSD=1)
 endif()
@@ -76,4 +89,3 @@ if(CMAKE_EXPORT_COMPILE_COMMANDS)
     VERBATIM
   )
 endif()
-

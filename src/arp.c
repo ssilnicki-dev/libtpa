@@ -7,9 +7,10 @@
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
-#include <netinet/if_ether.h>
-#include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/if_ether.h>
 #include <ifaddrs.h>
 #if defined(__linux__)
 #include <linux/if_packet.h>

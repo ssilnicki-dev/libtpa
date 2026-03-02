@@ -42,25 +42,26 @@ static struct rte_ether_addr broadcast_mac = {
 
 static void arp_init_hdr(struct arp_solicit_hdr *hdr, struct tpa_ip *ip)
 {
-	struct rte_ether_hdr *eth;
-	struct rte_arp_hdr *arp;
+	struct rte_ether_hdr eth;
+	struct rte_arp_hdr arp;
 
-	eth = &hdr->eth;
-	rte_ether_addr_copy(&dev.mac, ETH_SRC_ADDR(eth));
-	rte_ether_addr_copy(&broadcast_mac, ETH_DST_ADDR(eth));
-	eth->ether_type = htons(RTE_ETHER_TYPE_ARP);
+	rte_ether_addr_copy(&dev.mac, ETH_SRC_ADDR(&eth));
+	rte_ether_addr_copy(&broadcast_mac, ETH_DST_ADDR(&eth));
+	eth.ether_type = htons(RTE_ETHER_TYPE_ARP);
 
-	arp = &hdr->arp;
-	arp->arp_hardware = htons(RTE_ARP_HRD_ETHER);
-	arp->arp_protocol = htons(RTE_ETHER_TYPE_IPV4);
-	arp->arp_hlen = sizeof(struct rte_ether_addr);
-	arp->arp_plen = sizeof(struct in_addr);
-	arp->arp_opcode = htons(RTE_ARP_OP_REQUEST);
+	arp.arp_hardware = htons(RTE_ARP_HRD_ETHER);
+	arp.arp_protocol = htons(RTE_ETHER_TYPE_IPV4);
+	arp.arp_hlen = sizeof(struct rte_ether_addr);
+	arp.arp_plen = sizeof(struct in_addr);
+	arp.arp_opcode = htons(RTE_ARP_OP_REQUEST);
 
-	rte_ether_addr_copy(&dev.mac, &arp->arp_data.arp_sha);
-	rte_ether_addr_copy(&broadcast_mac, &arp->arp_data.arp_tha);
-	arp->arp_data.arp_sip = dev.ip4;
-	arp->arp_data.arp_tip = tpa_ip_get_ipv4(ip);
+	rte_ether_addr_copy(&dev.mac, &arp.arp_data.arp_sha);
+	rte_ether_addr_copy(&broadcast_mac, &arp.arp_data.arp_tha);
+	arp.arp_data.arp_sip = dev.ip4;
+	arp.arp_data.arp_tip = tpa_ip_get_ipv4(ip);
+
+	memcpy(&hdr->eth, &eth, sizeof(eth));
+	memcpy(&hdr->arp, &arp, sizeof(arp));
 }
 
 /*

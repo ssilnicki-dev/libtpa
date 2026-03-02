@@ -1,0 +1,77 @@
+cmake_minimum_required(VERSION 3.18)
+project(libtpa C)
+
+set(TPA_VERSION "1.0-rc0" CACHE STRING "libtpa version string")
+option(WITH_XDP "Enable AF_XDP control plane support" OFF)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT DEFINED WITH_XDP)
+  set(WITH_XDP ON)
+endif()
+
+find_package(DPDK REQUIRED)
+
+set(TPA_SOURCES
+  lib/utils.c
+  src/archive.c
+  src/arp.c
+  src/cfg.c
+  src/ctrl.c
+  src/dev.c
+  src/dpdk.c
+  src/eth.c
+  src/event.c
+  src/log.c
+  src/mem_file.c
+  src/ndp.c
+  src/neigh.c
+  src/offload.c
+  src/port_alloc.c
+  src/shell.c
+  src/sock.c
+  src/stats.c
+  src/tpa.c
+  src/tpad.c
+  src/trace.c
+  src/worker.c
+  src/tcp/tcp_input.c
+  src/tcp/tcp_output.c
+  src/tcp/tcp_timeout.c
+  src/pktfuzz/pktfuzz.c
+  src/pktfuzz/fuzzer_cut.c
+  src/pktfuzz/fuzzer_delay.c
+  src/pktfuzz/fuzzer_drop.c
+  src/pktfuzz/fuzzer_dup.c
+  src/pktfuzz/fuzzer_reorder.c
+)
+
+if(WITH_XDP)
+  list(APPEND TPA_SOURCES src/xdp_ctrl.c)
+endif()
+
+add_library(tpa STATIC ${TPA_SOURCES})
+set_target_properties(tpa PROPERTIES OUTPUT_NAME tpa)
+
+target_compile_features(tpa PRIVATE c_std_11)
+target_compile_definitions(tpa PRIVATE ALLOW_EXPERIMENTAL_API TPA_DEBUG)
+
+configure_file(${CMAKE_SOURCE_DIR}/cmake/version.h.in ${CMAKE_BINARY_DIR}/generated/include/version.h @ONLY)
+configure_file(${CMAKE_SOURCE_DIR}/cmake/build-info.h.in ${CMAKE_BINARY_DIR}/generated/include/build-info.h @ONLY)
+
+target_include_directories(tpa
+  PUBLIC
+    ${CMAKE_SOURCE_DIR}/include
+  PRIVATE
+    ${CMAKE_BINARY_DIR}/generated/include
+)
+
+if(TARGET DPDK::dpdk)
+  target_link_libraries(tpa PUBLIC DPDK::dpdk)
+elseif(TARGET dpdk)
+  target_link_libraries(tpa PUBLIC dpdk)
+else()
+  message(FATAL_ERROR "find_package(DPDK) succeeded but no DPDK target was exported")
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+  target_compile_definitions(tpa PRIVATE TPA_FREEBSD=1)
+endif()

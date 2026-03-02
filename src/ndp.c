@@ -8,7 +8,6 @@
 #include <netinet/icmp6.h>
 #include <sys/types.h>
 #include <ifaddrs.h>
-#include <linux/if_packet.h>
 #include <net/if.h>
 
 #include <rte_ethdev.h>

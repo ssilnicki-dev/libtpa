@@ -11,7 +11,7 @@
 #include <string.h>
 #include <assert.h>
 #include <unistd.h>
-#include <linux/limits.h>
+#include <limits.h>
 
 /*
  * NOTEs on this header file:

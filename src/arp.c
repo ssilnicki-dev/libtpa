@@ -5,12 +5,15 @@
  * Author: Kai Xiong <xiongkai.123@bytedance.com>
  */
 #include <stdio.h>
+#include <errno.h>
 #include <unistd.h>
 #include <netinet/if_ether.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <ifaddrs.h>
+#if defined(__linux__)
 #include <linux/if_packet.h>
+#endif
 #include <net/if.h>
 
 #include <rte_ethdev.h>
@@ -89,6 +92,7 @@ static int arp_solicit(struct tpa_ip *ip, struct tpa_worker *worker)
 
 static int arp_solicit_by_socket(int fd, struct tpa_ip *ip)
 {
+#if defined(__linux__)
 	struct arp_solicit_hdr hdr;
 	struct sockaddr_ll addr;
 
@@ -103,6 +107,12 @@ static int arp_solicit_by_socket(int fd, struct tpa_ip *ip)
 	}
 
 	return 0;
+#else
+	(void)fd;
+	(void)ip;
+	errno = ENOTSUP;
+	return -1;
+#endif
 }
 
 int arp_handle_reply(uint8_t *pkt, size_t len)
@@ -236,11 +246,16 @@ static void arp_cache_init(void)
 	if (getenv("TPA_ARP_SKIP_CACHE_INIT"))
 		return;
 
+#if defined(__linux__)
 	f = fopen("/proc/net/arp", "r");
 	if (!f) {
 		LOG_ERR("failed to open neigh proc file");
 		return;
 	}
+#else
+	LOG_WARN("ARP cache bootstrap is not implemented on this platform");
+	return;
+#endif
 
 	while (fgets(buf, sizeof(buf), f)) {
 		if (sscanf(buf, "%hhu.%hhu.%hhu.%hhu", &ip4.bytes[0],
@@ -291,7 +306,12 @@ static int arp_init(void)
 	arp_cache_init();
 	shell_register_cmd(&arp);
 
+#if defined(__linux__)
 	return socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
+#else
+	errno = ENOTSUP;
+	return -1;
+#endif
 }
 
 const struct neigh_ops arp_ops = {

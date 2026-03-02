@@ -5,6 +5,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(TPA_VERSION "1.0-rc0" CACHE STRING "libtpa version string")
 find_package(PkgConfig REQUIRED)
+find_package(Threads REQUIRED)
 pkg_check_modules(DPDK QUIET IMPORTED_TARGET dpdk)
 if(NOT DPDK_FOUND)
   pkg_check_modules(DPDK REQUIRED IMPORTED_TARGET libdpdk)
@@ -51,17 +52,29 @@ set_target_properties(tpa PROPERTIES OUTPUT_NAME tpa)
 target_compile_features(tpa PRIVATE c_std_11)
 target_compile_definitions(tpa PRIVATE ALLOW_EXPERIMENTAL_API TPA_DEBUG)
 
-configure_file(${CMAKE_SOURCE_DIR}/cmake/version.h.in ${CMAKE_BINARY_DIR}/generated/include/version.h @ONLY)
-configure_file(${CMAKE_SOURCE_DIR}/cmake/build-info.h.in ${CMAKE_BINARY_DIR}/generated/include/build-info.h @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.h.in ${CMAKE_BINARY_DIR}/generated/include/version.h @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/build-info.h.in ${CMAKE_BINARY_DIR}/generated/include/build-info.h @ONLY)
 
 target_include_directories(tpa
   PUBLIC
-    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
   PRIVATE
     ${CMAKE_BINARY_DIR}/generated/include
 )
 
 target_link_libraries(tpa PUBLIC PkgConfig::DPDK)
+add_executable(tpad
+  tpad/tpad.c
+  tpad/tpad_sock.c
+)
+
+target_compile_features(tpad PRIVATE c_std_11)
+target_compile_options(tpad PRIVATE -Wno-format-truncation)
+target_include_directories(tpad PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/tpad
+)
+target_link_libraries(tpad PRIVATE PkgConfig::DPDK tpa Threads::Threads)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
   target_compile_definitions(tpa PRIVATE TPA_FREEBSD=1)
@@ -71,9 +84,8 @@ if(CMAKE_EXPORT_COMPILE_COMMANDS)
   add_custom_target(sync_compile_commands ALL
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
       ${CMAKE_BINARY_DIR}/compile_commands.json
-      ${CMAKE_SOURCE_DIR}/compile_commands.json
+      ${CMAKE_CURRENT_SOURCE_DIR}/compile_commands.json
     DEPENDS ${CMAKE_BINARY_DIR}/compile_commands.json
     VERBATIM
   )
 endif()
-

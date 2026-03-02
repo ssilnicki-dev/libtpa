@@ -5,6 +5,7 @@
  */
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#include <rte_mempool.h>
 #endif
 #include <stdio.h>
 #include <sched.h>
@@ -805,7 +806,7 @@ static void mempool_walk_func(struct rte_mempool *mp, void *arg) {
     struct shell_buf *reply = arg;
     uint32_t i;
 
-    shell_append_reply(reply, "%16s  %-8u %-8u ", mp->name, mp->size, rte_mempool_ops_get_count(mp));
+    shell_append_reply(reply, "%16s  %-8u %-8u ", mp->name, mp->size, rte_mempool_avail_count(mp));
 
     if (mp->cache_size == 0) {
         shell_append_reply(reply, "0\n");

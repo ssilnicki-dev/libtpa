@@ -139,6 +139,41 @@ static inline const char *tpa_ip_to_str(const struct tpa_ip *ip, char *buf, size
 
 int tpa_init(int nr_worker);
 
+enum tpa_cfg_value_type {
+    TPA_CFG_VALUE_UINT = 1,
+    TPA_CFG_VALUE_STR,
+    TPA_CFG_VALUE_IPV4,
+    TPA_CFG_VALUE_IPV6,
+    TPA_CFG_VALUE_MAC,
+    TPA_CFG_VALUE_MASK,
+};
+
+struct tpa_cfg_value {
+    const char *name;
+    uint32_t type;
+    union {
+        uint64_t u64;
+        const char *str;
+        uint32_t ipv4;
+        uint8_t ipv6[16];
+        uint8_t mac[6];
+        uint64_t mask;
+    } value;
+};
+
+/*
+ * Apply pre-parsed/typed config values directly to libtpa internals.
+ *
+ * The caller should pass final values in libtpa internal units.
+ * Example: time options should be in microseconds.
+ */
+int tpa_cfg_apply(const struct tpa_cfg_value *values, size_t nr_values);
+
+/*
+ * Legacy string-based option setter.
+ */
+int tpa_cfg_set(const char *name, const char *value);
+
 struct tpa_worker;
 struct tpa_worker *tpa_worker_init(void);
 void tpa_worker_run(struct tpa_worker *worker);

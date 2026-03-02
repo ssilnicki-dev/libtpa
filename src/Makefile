@@ -21,7 +21,7 @@ SRCS += trace.c
 SRCS += log.c
 SRCS += shell.c
 SRCS += worker.c
-SRCS += cfg.c
+SRCS += cfg_external.c
 SRCS += stats.c
 SRCS += event.c
 SRCS += mem_file.c
@@ -74,7 +74,7 @@ $(OBJS): $(OBJ_DIR)/%.o: %.c | src_objs
 src_objs:
 	$(Q)mkdir -p $(OBJ_DIR)
 
-$(OBJ_DIR)/cfg.o: $(SRC_ROOT)/include/version.h
+$(OBJ_DIR)/cfg_external.o: $(SRC_ROOT)/include/version.h
 $(OBJ_DIR)/tpa.o: $(SRC_ROOT)/include/build-info.h
 
 $(SRC_ROOT)/include/version.h:

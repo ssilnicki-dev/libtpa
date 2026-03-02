@@ -15,7 +15,7 @@ set(TPA_SOURCES
   lib/utils.c
   src/archive.c
   src/arp.c
-  src/cfg.c
+  src/cfg_external.c
   src/ctrl.c
   src/dev.c
   src/dpdk.c

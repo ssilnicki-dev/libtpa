@@ -8,15 +8,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#if defined(__linux__)
-#include <netpacket/packet.h>
-#include <net/if.h>
-#endif
 #include <libgen.h>
-
-#include <rte_ether.h>
-#include <rte_ip.h>
-#include <rte_tcp.h>
 
 #include "sock.h"
 #include "log.h"
@@ -26,62 +18,6 @@
 #include "tsock_trace.h"
 #include "tpad.h"
 #include "archive.h"
-
-static void calc_csum(struct eth_ip_hdr *net_hdr, struct rte_tcp_hdr *tcp) {
-    if (ntohs(net_hdr->eth.ether_type) == RTE_ETHER_TYPE_IPV4) {
-        net_hdr->ip4.hdr_checksum = 0;
-        net_hdr->ip4.hdr_checksum = rte_ipv4_cksum(&net_hdr->ip4);
-
-        tcp->cksum = 0;
-        tcp->cksum = rte_ipv4_udptcp_cksum(&net_hdr->ip4, tcp);
-    } else {
-        tcp->cksum = 0;
-        tcp->cksum = rte_ipv6_udptcp_cksum(&net_hdr->ip6, tcp);
-    }
-}
-
-#if defined(__linux__)
-static void terminate_one_sock(struct tcp_sock *tsock, int fd, int ifindex) {
-    struct eth_ip_hdr *net_hdr;
-    struct rte_tcp_hdr *tcp;
-    struct sockaddr_ll addr;
-    char buf[128];
-
-    get_flow_name(tsock, buf, sizeof(buf));
-    LOG("terminating tsock %s ...", buf);
-
-    net_hdr = (struct eth_ip_hdr *)buf;
-    tcp = (struct rte_tcp_hdr *)((char *)net_hdr + tsock->net_hdr_len);
-
-    *net_hdr = tsock->net_hdr;
-    if (tsock->is_ipv6) {
-        net_hdr->ip6.payload_len = htons(sizeof(*tcp));
-    } else {
-        net_hdr->ip4.packet_id = htons(tsock->packet_id);
-        net_hdr->ip4.total_length = htons(sizeof(net_hdr->ip4) + sizeof(*tcp));
-    }
-
-    memset(tcp, 0, sizeof(*tcp));
-    tcp->src_port = tsock->local_port;
-    tcp->dst_port = tsock->remote_port;
-    tcp->sent_seq = htonl(tsock->snd_nxt);
-    tcp->tcp_flags = TCP_FLAG_RST;
-    tcp->data_off = (sizeof(*tcp) >> 2) << 4;
-
-    calc_csum(net_hdr, tcp);
-
-    memset(&addr, 0, sizeof(addr));
-    addr.sll_family = AF_PACKET;
-    addr.sll_ifindex = ifindex;
-    addr.sll_halen = RTE_ETHER_ADDR_LEN;
-    addr.sll_protocol = net_hdr->eth.ether_type;
-    memcpy(addr.sll_addr, ETH_SRC_ADDR(&net_hdr->eth), RTE_ETHER_ADDR_LEN);
-
-    if (sendto(fd, buf, tsock->net_hdr_len + sizeof(*tcp), 0, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-        LOG_WARN("failed to terminate tsock %d: %s", tsock->sid, strerror(errno));
-    }
-}
-#endif
 
 static void tpad_symlink(const char *target, const char *linkpath) {
     if (symlink(target, linkpath) < 0) {
@@ -103,39 +39,7 @@ void sock_termination(void) {
 
     if (id != UINT64_MAX) tpad_symlink(archive_path(&ctx, id), tpad.sock_file);
 
-#if defined(__linux__)
-    {
-        struct tcp_sock *tsock;
-        int ifindex;
-        int fd;
-        int i;
-
-        ifindex = if_nametoindex(tpad.eth_dev);
-        if (ifindex == 0) {
-            LOG_WARN("skip sock termination due to failed to get ifindex for %s: %s", tpad.eth_dev, strerror(errno));
-            return;
-        }
-
-        /*
-         * setting protocol to 0 here means we'd like to recv
-         * no pkts from kernel
-         */
-        fd = socket(AF_PACKET, SOCK_RAW, 0);
-        if (fd == -1) {
-            LOG_WARN("failed to create AF_PACKET: %s", strerror(errno));
-            return;
-        }
-
-        sock_ctrl = mem_file_data(mem_file);
-        for (i = 0; i < sock_ctrl->nr_max_sock; i++) {
-            tsock = &sock_ctrl->socks[i];
-
-            if (tsock->sid >= 0 && tsock->state == TCP_STATE_ESTABLISHED) terminate_one_sock(tsock, fd, ifindex);
-        }
-    }
-#else
-    LOG_WARN("skip sock termination: unsupported platform");
-#endif
+    LOG("skip active sock termination in tpad FreeBSD port");
 }
 
 /* XXX: de-duplicate */

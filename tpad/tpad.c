@@ -12,9 +12,6 @@
 
 #include "log.h"
 #include "tpad.h"
-#if defined(__linux__) && defined(WITH_XDP)
-#include "xdp_ctrl.h"
-#endif
 
 struct tpad tpad;
 
@@ -100,9 +97,6 @@ int main(int argc, char **argv) {
     if (wait_for_tpa_app(fd) == 0) {
         sock_termination();
         sock_archive();
-#if defined(__linux__) && defined(WITH_XDP)
-        if (xdp_prog_id_query(tpad.eth_dev) > 0) xdp_prog_detach(tpad.eth_dev);
-#endif
     }
 
     LOG("tpad %s %d quits", tpad.name, getpid());

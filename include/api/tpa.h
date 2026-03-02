@@ -139,6 +139,16 @@ static inline const char *tpa_ip_to_str(const struct tpa_ip *ip, char *buf, size
 
 int tpa_init(int nr_worker);
 
+/*
+ * Set one configuration option from outside the library.
+ *
+ * Example: tpa_cfg_set("tcp.retries", "8");
+ *
+ * Should be invoked before tpa_init(), though updating an already
+ * registered option is also supported.
+ */
+int tpa_cfg_set(const char *name, const char *value);
+
 struct tpa_worker;
 struct tpa_worker *tpa_worker_init(void);
 void tpa_worker_run(struct tpa_worker *worker);

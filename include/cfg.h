@@ -6,6 +6,7 @@
 #ifndef _TPA_CFG_H_
 #define _TPA_CFG_H_
 #include <stdint.h>
+#include <stdio.h>
 #include <limits.h>
 
 enum {
@@ -89,6 +90,7 @@ int cfg_spec_register(struct cfg_spec *specs, int nr_spec);
 void cfg_dump_unknown_opts(void);
 
 int cfg_spec_set_num(struct cfg_spec *spec, const char *val);
+int tpa_cfg_set(const char *name, const char *value);
 
 extern struct tpa_cfg tpa_cfg;
 

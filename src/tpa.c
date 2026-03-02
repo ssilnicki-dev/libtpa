@@ -10,7 +10,6 @@
 #include <sys/time.h>
 #include <fcntl.h>
 #include <sys/file.h>
-#include <numa.h>
 
 #include <rte_eal.h>
 #include <rte_malloc.h>

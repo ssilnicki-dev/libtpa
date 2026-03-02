@@ -8,13 +8,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <netinet/in.h>
-#include <netinet/ether.h>
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 
 #include <rte_cycles.h>
+#include <rte_ether.h>
 
 #include "lib/utils.h"
 #include "version.h"
@@ -599,17 +599,17 @@ static int cfg_spec_set_ipv6(struct cfg_spec *spec, const char *val)
 
 static int cfg_spec_set_mac(struct cfg_spec *spec, const char *val)
 {
-	struct ether_addr ethaddr;
+	struct rte_ether_addr ethaddr;
 
 	if (sscanf(val, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
-			&ethaddr.ether_addr_octet[0], &ethaddr.ether_addr_octet[1],
-			&ethaddr.ether_addr_octet[2], &ethaddr.ether_addr_octet[3],
-			&ethaddr.ether_addr_octet[4], &ethaddr.ether_addr_octet[5]) != 6) {
+			&ethaddr.addr_bytes[0], &ethaddr.addr_bytes[1],
+			&ethaddr.addr_bytes[2], &ethaddr.addr_bytes[3],
+			&ethaddr.addr_bytes[4], &ethaddr.addr_bytes[5]) != 6) {
 		LOG_ERR("invalid mac format: %s", val);
 		return -1;
 	}
 
-	*(struct ether_addr *)spec->data = ethaddr;
+	*(struct rte_ether_addr *)spec->data = ethaddr;
 
 	return 0;
 }
@@ -748,12 +748,12 @@ static int cfg_spec_get_ipv6(struct cfg_spec *spec, char *val)
 
 static int cfg_spec_get_mac(struct cfg_spec *spec, char *val)
 {
-	struct ether_addr *ethaddr = (struct ether_addr *)spec->data;
+	struct rte_ether_addr *ethaddr = (struct rte_ether_addr *)spec->data;
 
 	tpa_snprintf(val, VAL_SIZE, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
-		 ethaddr->ether_addr_octet[0], ethaddr->ether_addr_octet[1],
-		 ethaddr->ether_addr_octet[2], ethaddr->ether_addr_octet[3],
-		 ethaddr->ether_addr_octet[4], ethaddr->ether_addr_octet[5]);
+		 ethaddr->addr_bytes[0], ethaddr->addr_bytes[1],
+		 ethaddr->addr_bytes[2], ethaddr->addr_bytes[3],
+		 ethaddr->addr_bytes[4], ethaddr->addr_bytes[5]);
 
 	return 0;
 }

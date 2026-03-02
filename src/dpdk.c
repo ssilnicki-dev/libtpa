@@ -9,7 +9,24 @@
 #include <stdio.h>
 #include <sched.h>
 #include <pthread.h>
+#if defined(__has_include)
+#if __has_include(<numa.h>)
 #include <numa.h>
+#define TPA_HAVE_LIBNUMA 1
+#endif
+#endif
+#ifndef TPA_HAVE_LIBNUMA
+static inline int numa_num_configured_nodes(void)
+{
+	return 1;
+}
+
+static inline int numa_node_of_cpu(int cpu)
+{
+	(void)cpu;
+	return 0;
+}
+#endif
 
 #include <rte_eal.h>
 #include <rte_malloc.h>

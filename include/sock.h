@@ -325,14 +325,15 @@ static inline int init_net_hdr_from_pkt(struct eth_ip_hdr *net_hdr, struct tpa_i
 					struct tpa_ip *remote_ip, struct packet *pkt)
 {
 	struct rte_ether_hdr *eth = packet_eth_hdr(pkt);
+	struct rte_ether_hdr eth_hdr;
 
 	init_tpa_ip_from_pkt(pkt, remote_ip, local_ip);
 
-	rte_ether_addr_copy(ETH_DST_ADDR(eth), ETH_SRC_ADDR(&net_hdr->eth));
-	rte_ether_addr_copy(ETH_SRC_ADDR(eth), ETH_DST_ADDR(&net_hdr->eth));
-	net_hdr->eth.ether_type = eth->ether_type;
+	rte_ether_addr_copy(ETH_DST_ADDR(eth), ETH_SRC_ADDR(&eth_hdr));
+	rte_ether_addr_copy(ETH_SRC_ADDR(eth), ETH_DST_ADDR(&eth_hdr));
+	eth_hdr.ether_type = eth->ether_type;
 
-	return init_net_hdr(net_hdr, &net_hdr->eth, local_ip, remote_ip);
+	return init_net_hdr(net_hdr, &eth_hdr, local_ip, remote_ip);
 }
 
 static inline void tcp_reset_retrans(struct tcp_sock *tsock, uint32_t seq,

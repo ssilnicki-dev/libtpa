@@ -63,9 +63,13 @@ static void ndp_init_hdr(struct ndp_solicit_hdr *hdr, struct tpa_ip *ip)
 
 	get_mulitcast_ip(multicast_ip, ip->u8);
 
-	rte_ether_addr_copy(&dev.mac, ETH_SRC_ADDR(&hdr->eth));
-	get_multicast_mac(ETH_DST_ADDR(&hdr->eth), multicast_ip);
-	hdr->eth.ether_type = htons(RTE_ETHER_TYPE_IPV6);
+	struct rte_ether_hdr eth_hdr;
+	struct rte_ether_addr mac;
+
+	rte_ether_addr_copy(&dev.mac, ETH_SRC_ADDR(&eth_hdr));
+	get_multicast_mac(ETH_DST_ADDR(&eth_hdr), multicast_ip);
+	eth_hdr.ether_type = htons(RTE_ETHER_TYPE_IPV6);
+	memcpy(&hdr->eth, &eth_hdr, sizeof(eth_hdr));
 
 	ip_hdr = &hdr->ip6;
 	memcpy(ip_hdr->dst_addr, multicast_ip, 16);
@@ -82,7 +86,8 @@ static void ndp_init_hdr(struct ndp_solicit_hdr *hdr, struct tpa_ip *ip)
 
 	hdr->opt.nd_opt_type = ND_OPT_SOURCE_LINKADDR;
 	hdr->opt.nd_opt_len = 1;
-	rte_ether_addr_copy(&dev.mac, &hdr->mac);
+	rte_ether_addr_copy(&dev.mac, &mac);
+	memcpy(&hdr->mac, &mac, sizeof(mac));
 
 	ns->nd_ns_hdr.icmp6_cksum = 0;
 	ns->nd_ns_hdr.icmp6_cksum = rte_ipv6_udptcp_cksum(ip_hdr, ns);

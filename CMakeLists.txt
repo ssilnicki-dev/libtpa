@@ -4,11 +4,6 @@ project(libtpa C)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(TPA_VERSION "1.0-rc0" CACHE STRING "libtpa version string")
-option(WITH_XDP "Enable AF_XDP control plane support" OFF)
-
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT DEFINED WITH_XDP)
-  set(WITH_XDP ON)
-endif()
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(DPDK QUIET IMPORTED_TARGET dpdk)
@@ -50,10 +45,6 @@ set(TPA_SOURCES
   src/pktfuzz/fuzzer_reorder.c
 )
 
-if(WITH_XDP)
-  list(APPEND TPA_SOURCES src/xdp_ctrl.c)
-endif()
-
 add_library(tpa STATIC ${TPA_SOURCES})
 set_target_properties(tpa PROPERTIES OUTPUT_NAME tpa)
 
@@ -85,4 +76,3 @@ if(CMAKE_EXPORT_COMPILE_COMMANDS)
     VERBATIM
   )
 endif()
-

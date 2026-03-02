@@ -13,7 +13,7 @@
 #include <netinet/if_ether.h>
 #include <ifaddrs.h>
 #if defined(__linux__)
-#include <linux/if_packet.h>
+#include <netpacket/packet.h>
 #endif
 #include <net/if.h>
 

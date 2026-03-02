@@ -9,7 +9,6 @@ BPF_CFLAGS := -Wall -Werror
 BPF_CFLAGS += -O2 -emit-llvm -c -g
 BPF_CFLAGS += -I$(SRC_ROOT)/include
 
-SRCS += xdp_flow_steering.c
 
 OBJ_DIR = $(OBJ_ROOT)/bpf
 OBJS = $(SRCS:%.c=$(OBJ_DIR)/%.o)

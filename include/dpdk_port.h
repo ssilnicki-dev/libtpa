@@ -55,7 +55,6 @@ enum {
 enum {
 	NIC_TYPE_MLNX = 1,
 	NIC_TYPE_IAVF,
-	NIC_TYPE_AF_XDP,
 	NIC_TYPE_UNKNOWN,
 };
 

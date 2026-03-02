@@ -21,6 +21,10 @@
 #include "tpa.h"
 #include "mem_file.h"
 
+#ifndef MAP_POPULATE
+#define MAP_POPULATE 0
+#endif
+
 /* DPDK virtual address starts from 4G, here we start from 1T */
 static char *next_map_addr = (char *)(uintptr_t)(1ull << 40);
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -138,6 +142,20 @@ struct mem_file *mem_file_create_expandable(const char *path, size_t size,
 	return do_mem_file_create(path, size, parser, MEM_FILE_EXPANDABLE, limit);
 }
 
+static void *mem_file_remap(struct mem_file *mem_file, size_t new_size)
+{
+#if defined(__linux__)
+	return mremap(mem_file->hdr, mem_file->hdr->size, new_size, 0);
+#else
+	void *old_addr = mem_file->hdr;
+	if (munmap(old_addr, mem_file->hdr->size) != 0)
+		return MAP_FAILED;
+
+	return mmap(old_addr, new_size, PROT_READ | PROT_WRITE,
+			MAP_SHARED | MAP_FIXED, mem_file->fd, 0);
+#endif
+}
+
 int mem_file_expand(struct mem_file *mem_file, size_t size)
 {
 	size_t new_size = mem_file->hdr->size + size;
@@ -168,9 +186,9 @@ int mem_file_expand(struct mem_file *mem_file, size_t size)
 		return -1;
 	}
 
-	addr = mremap(mem_file->hdr, mem_file->hdr->size, new_size, 0);
+	addr = mem_file_remap(mem_file, new_size);
 	if (addr == MAP_FAILED) {
-		LOG_ERR("failed to expand %s to size %lu: mremap failed: %s",
+		LOG_ERR("failed to expand %s to size %lu: remap failed: %s",
 			mem_file->path, new_size, strerror(errno));
 		return -1;
 	}

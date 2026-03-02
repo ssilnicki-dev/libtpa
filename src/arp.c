@@ -5,12 +5,16 @@
  * Author: Kai Xiong <xiongkai.123@bytedance.com>
  */
 #include <stdio.h>
+#include <errno.h>
 #include <unistd.h>
-#include <netinet/if_ether.h>
-#include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/if_ether.h>
 #include <ifaddrs.h>
+#if defined(__linux__)
 #include <linux/if_packet.h>
+#endif
 #include <net/if.h>
 
 #include <rte_ethdev.h>
@@ -38,25 +42,26 @@ static struct rte_ether_addr broadcast_mac = {
 
 static void arp_init_hdr(struct arp_solicit_hdr *hdr, struct tpa_ip *ip)
 {
-	struct rte_ether_hdr *eth;
-	struct rte_arp_hdr *arp;
+	struct rte_ether_hdr eth;
+	struct rte_arp_hdr arp;
 
-	eth = &hdr->eth;
-	rte_ether_addr_copy(&dev.mac, ETH_SRC_ADDR(eth));
-	rte_ether_addr_copy(&broadcast_mac, ETH_DST_ADDR(eth));
-	eth->ether_type = htons(RTE_ETHER_TYPE_ARP);
+	rte_ether_addr_copy(&dev.mac, ETH_SRC_ADDR(&eth));
+	rte_ether_addr_copy(&broadcast_mac, ETH_DST_ADDR(&eth));
+	eth.ether_type = htons(RTE_ETHER_TYPE_ARP);
 
-	arp = &hdr->arp;
-	arp->arp_hardware = htons(RTE_ARP_HRD_ETHER);
-	arp->arp_protocol = htons(RTE_ETHER_TYPE_IPV4);
-	arp->arp_hlen = sizeof(struct rte_ether_addr);
-	arp->arp_plen = sizeof(struct in_addr);
-	arp->arp_opcode = htons(RTE_ARP_OP_REQUEST);
+	arp.arp_hardware = htons(RTE_ARP_HRD_ETHER);
+	arp.arp_protocol = htons(RTE_ETHER_TYPE_IPV4);
+	arp.arp_hlen = sizeof(struct rte_ether_addr);
+	arp.arp_plen = sizeof(struct in_addr);
+	arp.arp_opcode = htons(RTE_ARP_OP_REQUEST);
 
-	rte_ether_addr_copy(&dev.mac, &arp->arp_data.arp_sha);
-	rte_ether_addr_copy(&broadcast_mac, &arp->arp_data.arp_tha);
-	arp->arp_data.arp_sip = dev.ip4;
-	arp->arp_data.arp_tip = tpa_ip_get_ipv4(ip);
+	rte_ether_addr_copy(&dev.mac, &arp.arp_data.arp_sha);
+	rte_ether_addr_copy(&broadcast_mac, &arp.arp_data.arp_tha);
+	arp.arp_data.arp_sip = dev.ip4;
+	arp.arp_data.arp_tip = tpa_ip_get_ipv4(ip);
+
+	memcpy(&hdr->eth, &eth, sizeof(eth));
+	memcpy(&hdr->arp, &arp, sizeof(arp));
 }
 
 /*
@@ -89,6 +94,7 @@ static int arp_solicit(struct tpa_ip *ip, struct tpa_worker *worker)
 
 static int arp_solicit_by_socket(int fd, struct tpa_ip *ip)
 {
+#if defined(__linux__)
 	struct arp_solicit_hdr hdr;
 	struct sockaddr_ll addr;
 
@@ -103,6 +109,12 @@ static int arp_solicit_by_socket(int fd, struct tpa_ip *ip)
 	}
 
 	return 0;
+#else
+	(void)fd;
+	(void)ip;
+	errno = ENOTSUP;
+	return -1;
+#endif
 }
 
 int arp_handle_reply(uint8_t *pkt, size_t len)
@@ -236,11 +248,16 @@ static void arp_cache_init(void)
 	if (getenv("TPA_ARP_SKIP_CACHE_INIT"))
 		return;
 
+#if defined(__linux__)
 	f = fopen("/proc/net/arp", "r");
 	if (!f) {
 		LOG_ERR("failed to open neigh proc file");
 		return;
 	}
+#else
+	LOG_WARN("ARP cache bootstrap is not implemented on this platform");
+	return;
+#endif
 
 	while (fgets(buf, sizeof(buf), f)) {
 		if (sscanf(buf, "%hhu.%hhu.%hhu.%hhu", &ip4.bytes[0],
@@ -291,7 +308,12 @@ static int arp_init(void)
 	arp_cache_init();
 	shell_register_cmd(&arp);
 
+#if defined(__linux__)
 	return socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
+#else
+	errno = ENOTSUP;
+	return -1;
+#endif
 }
 
 const struct neigh_ops arp_ops = {

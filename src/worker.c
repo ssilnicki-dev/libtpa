@@ -8,6 +8,7 @@
 #endif
 #include <stdio.h>
 #include <sched.h>
+#include <pthread.h>
 #include <sys/syscall.h>
 
 #include <rte_malloc.h>
@@ -28,6 +29,15 @@ __thread struct tpa_worker *tls_worker;
 static uint32_t next_worker;
 
 static const struct shell_cmd worker_cmd;
+
+static inline pid_t tpa_gettid(void)
+{
+#if defined(SYS_gettid)
+	return (pid_t)syscall(SYS_gettid);
+#else
+	return (pid_t)(uintptr_t)pthread_self();
+#endif
+}
 
 static int init_one_worker(struct tpa_worker *worker, uint8_t id)
 {
@@ -155,7 +165,7 @@ struct tpa_worker *tpa_worker_init(void)
 	RTE_PER_LCORE(_lcore_id) = id;
 
 	worker = &workers[id];
-	worker->tid = syscall(SYS_gettid);
+	worker->tid = tpa_gettid();
 
 	tls_worker = worker;
 

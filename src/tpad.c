@@ -6,9 +6,14 @@
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
+#include <pthread.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#if defined(__linux__)
 #include <sys/prctl.h>
+#elif defined(__FreeBSD__)
+#include <pthread_np.h>
+#endif
 
 #include "cfg.h"
 #include "dev.h"
@@ -65,7 +70,13 @@ void tpad_init(void)
 	char path[PATH_MAX];
 	int fd;
 
+	#if defined(__linux__)
 	prctl(PR_GET_NAME, name, sizeof(name));
+#elif defined(__FreeBSD__)
+	pthread_get_name_np(pthread_self(), name, sizeof(name));
+#else
+	tpa_snprintf(name, sizeof(name), "tpa");
+#endif
 	tpa_snprintf(tpad_name, sizeof(tpad_name), "tpad-%s.%d", name, getpid());
 
 	fd = tpad_socket_create();

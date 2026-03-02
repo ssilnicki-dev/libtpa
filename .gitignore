@@ -8,3 +8,5 @@ build-info.h
 core
 build
 third
+/.cache/
+/compile_commands.json

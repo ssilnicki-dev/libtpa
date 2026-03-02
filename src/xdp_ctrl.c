@@ -9,7 +9,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <string.h>
-#include <linux/limits.h>
+#include <limits.h>
 #include <linux/if_link.h>
 #include <net/if.h>
 #include <arpa/inet.h>

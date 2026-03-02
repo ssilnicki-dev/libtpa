@@ -135,14 +135,10 @@ struct mem_file *mem_file_create_expandable(const char *path, size_t size, const
 }
 
 static void *mem_file_remap(struct mem_file *mem_file, size_t new_size) {
-#if defined(__linux__)
-    return mremap(mem_file->hdr, mem_file->hdr->size, new_size, 0);
-#else
     void *old_addr = mem_file->hdr;
     if (munmap(old_addr, mem_file->hdr->size) != 0) return MAP_FAILED;
 
     return mmap(old_addr, new_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, mem_file->fd, 0);
-#endif
 }
 
 int mem_file_expand(struct mem_file *mem_file, size_t size) {

@@ -14,11 +14,11 @@ export INSTALL_ROOT = /usr/share/tpa
 export CC ?= gcc
 
 ARCH ?= $(shell uname -m)
-OS    = $(shell uname -o)
+OS    = $(shell uname -s)
 
 ifneq ($(MAKECMDGOALS),gtags)
-ifneq ($(OS),GNU/Linux)
-$(error Libtpa builds only in GNU/Linux OS)
+ifneq ($(OS),FreeBSD)
+$(error Libtpa builds only in FreeBSD)
 endif
 
 ifeq ($(wildcard $(CONFIG_MK)),)
@@ -52,9 +52,6 @@ CFLAGS := -O2 $(EXTRA_CFLAGS)
 CFLAGS += -Wall -Werror -Wno-packed-not-aligned -Wno-format-truncation
 CFLAGS += -Wno-address-of-packed-member
 
-ifeq ($(WITH_XDP), yes)
-CFLAGS += -DWITH_XDP
-endif
 
 LDFLAGS := $(EXTRA_LDFLAGS)
 LDFLAGS += -lpthread -lnuma

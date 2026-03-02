@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.18)
 project(libtpa C)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 set(TPA_VERSION "1.0-rc0" CACHE STRING "libtpa version string")
 option(WITH_XDP "Enable AF_XDP control plane support" OFF)
 
@@ -73,3 +75,14 @@ target_link_libraries(tpa PUBLIC PkgConfig::DPDK)
 if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
   target_compile_definitions(tpa PRIVATE TPA_FREEBSD=1)
 endif()
+
+if(CMAKE_EXPORT_COMPILE_COMMANDS)
+  add_custom_target(sync_compile_commands ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      ${CMAKE_BINARY_DIR}/compile_commands.json
+      ${CMAKE_SOURCE_DIR}/compile_commands.json
+    DEPENDS ${CMAKE_BINARY_DIR}/compile_commands.json
+    VERBATIM
+  )
+endif()
+

@@ -52,8 +52,7 @@ static int ctrl_thread_create(void *(*func)(void *), void *arg, const char *name
 	if (pthread_setaffinity_np(tid, sizeof(cpu_set_t), &cpuset))
 		LOG_WARN("failed to bind thread %s to cpu %d", name, ctrl_cpu);
 #elif defined(__FreeBSD__)
-	if (pthread_set_name_np(tid, name) != 0)
-		LOG_WARN("failed to set thread name: %s", name);
+	pthread_set_name_np(tid, name);
 #endif
 
 	return 0;

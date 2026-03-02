@@ -12,11 +12,7 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include <limits.h>
-#if defined(__linux__)
-#include <sys/prctl.h>
-#elif defined(__FreeBSD__)
 #include <pthread_np.h>
-#endif
 
 #include "log.h"
 #include "cfg.h"
@@ -92,13 +88,7 @@ static void log_file_init(void) {
 
     log_ctrl.fd = fd;
     log_ctrl.pid = getpid();
-#if defined(__linux__)
-    prctl(PR_GET_NAME, log_ctrl.program, sizeof(log_ctrl.program));
-#elif defined(__FreeBSD__)
     pthread_get_name_np(pthread_self(), log_ctrl.program, sizeof(log_ctrl.program));
-#else
-    tpa_snprintf(log_ctrl.program, sizeof(log_ctrl.program), "tpa");
-#endif
 }
 
 void tpa_log(int level, const char *fmt, ...) {

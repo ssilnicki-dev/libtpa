@@ -4,9 +4,10 @@
  * Author: Yuanhan Liu <liuyuanhan.131@bytedance.com>
  * Author: Kai Xiong <xiongkai.123@bytedance.com>
  */
-#include <sys/socket.h>
-#include <netinet/icmp6.h>
 #include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/icmp6.h>
 #include <ifaddrs.h>
 #include <net/if.h>
 

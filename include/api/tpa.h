@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/socket.h>
 #include <arpa/inet.h>
 
 #ifdef __cplusplus

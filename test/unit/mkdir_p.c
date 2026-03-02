@@ -10,23 +10,21 @@
 
 #include "lib/utils.h"
 
-static void test_mkdir(void)
-{
-	assert(mkdir_p("/tmp/tpa-mkdir-test/world") == 0);
-	assert(mkdir_p("///tmp/tpa-mkdir-test///world///") == 0);
+static void test_mkdir(void) {
+    assert(mkdir_p("/tmp/tpa-mkdir-test/world") == 0);
+    assert(mkdir_p("///tmp/tpa-mkdir-test///world///") == 0);
 
-	assert(mkdir_p("./test_mkdir/A/B/") == 0);
-	assert(mkdir_p("./test_mkdir/A/../C") == 0);
-	assert(mkdir_p("test_mkdir/D/") == 0);
-	assert(mkdir_p("./test_mkdir/A/H//") == 0);
+    assert(mkdir_p("./test_mkdir/A/B/") == 0);
+    assert(mkdir_p("./test_mkdir/A/../C") == 0);
+    assert(mkdir_p("test_mkdir/D/") == 0);
+    assert(mkdir_p("./test_mkdir/A/H//") == 0);
 
-	system("rm -r ./test_mkdir");
-	system("rm -r /tmp/tpa-mkdir-test");
+    system("rm -r ./test_mkdir");
+    system("rm -r /tmp/tpa-mkdir-test");
 }
 
-int main(void)
-{
-	test_mkdir();
+int main(void) {
+    test_mkdir();
 
-	return 0;
+    return 0;
 }

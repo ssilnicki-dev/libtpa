@@ -9,13 +9,11 @@
 
 struct ctx ctx;
 
-int main(int argc, char **argv)
-{
-	parse_options(argc, argv);
-	integrity_init();
+int main(int argc, char **argv) {
+    parse_options(argc, argv);
+    integrity_init();
 
-	if (ctx.is_client)
-		return tperf_client();
+    if (ctx.is_client) return tperf_client();
 
-	return tperf_server();
+    return tperf_server();
 }

@@ -7,32 +7,30 @@
 
 #include "test_utils.h"
 
-static void test_tcp_output_tcp_txq_full(void)
-{
-	struct tcp_sock *tsock;
-	int ret;
+static void test_tcp_output_tcp_txq_full(void) {
+    struct tcp_sock *tsock;
+    int ret;
 
-	printf("testing tcp_output [tcp txq full] ...\n");
+    printf("testing tcp_output [tcp txq full] ...\n");
 
-	tsock = ut_tcp_connect();
+    tsock = ut_tcp_connect();
 
-	/* simulate tcp_txq full */
-	tsock->txq.write = tsock->txq.size;
+    /* simulate tcp_txq full */
+    tsock->txq.write = tsock->txq.size;
 
-	ret = ut_write(tsock, MESSAGE_SIZE);
-	assert(ret == -1 && errno == EAGAIN);
+    ret = ut_write(tsock, MESSAGE_SIZE);
+    assert(ret == -1 && errno == EAGAIN);
 
-	/* restore sane value */
-	tsock->txq.write = tsock->txq.una;
+    /* restore sane value */
+    tsock->txq.write = tsock->txq.una;
 
-	ut_close(tsock, CLOSE_TYPE_4WAY);
+    ut_close(tsock, CLOSE_TYPE_4WAY);
 }
 
-int main(int argc, char *argv[])
-{
-	ut_init(argc, argv);
+int main(int argc, char *argv[]) {
+    ut_init(argc, argv);
 
-	test_tcp_output_tcp_txq_full();
+    test_tcp_output_tcp_txq_full();
 
-	return 0;
+    return 0;
 }

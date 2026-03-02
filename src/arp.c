@@ -31,294 +31,268 @@
 #include "neigh.h"
 
 struct arp_solicit_hdr {
-	struct rte_ether_hdr eth;
-	struct rte_arp_hdr arp;
-	char pad[22];
+    struct rte_ether_hdr eth;
+    struct rte_arp_hdr arp;
+    char pad[22];
 } __attribute__((packed));
 
 static struct rte_ether_addr broadcast_mac = {
-	.addr_bytes = "\xff\xff\xff\xff\xff\xff",
+    .addr_bytes = "\xff\xff\xff\xff\xff\xff",
 };
 
-static void arp_init_hdr(struct arp_solicit_hdr *hdr, struct tpa_ip *ip)
-{
-	struct rte_ether_hdr eth;
-	struct rte_arp_hdr arp;
+static void arp_init_hdr(struct arp_solicit_hdr *hdr, struct tpa_ip *ip) {
+    struct rte_ether_hdr eth;
+    struct rte_arp_hdr arp;
 
-	rte_ether_addr_copy(&dev.mac, ETH_SRC_ADDR(&eth));
-	rte_ether_addr_copy(&broadcast_mac, ETH_DST_ADDR(&eth));
-	eth.ether_type = htons(RTE_ETHER_TYPE_ARP);
+    rte_ether_addr_copy(&dev.mac, ETH_SRC_ADDR(&eth));
+    rte_ether_addr_copy(&broadcast_mac, ETH_DST_ADDR(&eth));
+    eth.ether_type = htons(RTE_ETHER_TYPE_ARP);
 
-	arp.arp_hardware = htons(RTE_ARP_HRD_ETHER);
-	arp.arp_protocol = htons(RTE_ETHER_TYPE_IPV4);
-	arp.arp_hlen = sizeof(struct rte_ether_addr);
-	arp.arp_plen = sizeof(struct in_addr);
-	arp.arp_opcode = htons(RTE_ARP_OP_REQUEST);
+    arp.arp_hardware = htons(RTE_ARP_HRD_ETHER);
+    arp.arp_protocol = htons(RTE_ETHER_TYPE_IPV4);
+    arp.arp_hlen = sizeof(struct rte_ether_addr);
+    arp.arp_plen = sizeof(struct in_addr);
+    arp.arp_opcode = htons(RTE_ARP_OP_REQUEST);
 
-	rte_ether_addr_copy(&dev.mac, &arp.arp_data.arp_sha);
-	rte_ether_addr_copy(&broadcast_mac, &arp.arp_data.arp_tha);
-	arp.arp_data.arp_sip = dev.ip4;
-	arp.arp_data.arp_tip = tpa_ip_get_ipv4(ip);
+    rte_ether_addr_copy(&dev.mac, &arp.arp_data.arp_sha);
+    rte_ether_addr_copy(&broadcast_mac, &arp.arp_data.arp_tha);
+    arp.arp_data.arp_sip = dev.ip4;
+    arp.arp_data.arp_tip = tpa_ip_get_ipv4(ip);
 
-	memcpy(&hdr->eth, &eth, sizeof(eth));
-	memcpy(&hdr->arp, &arp, sizeof(arp));
+    memcpy(&hdr->eth, &eth, sizeof(eth));
+    memcpy(&hdr->arp, &arp, sizeof(arp));
 }
 
 /*
  * injecting ARP request by DPDK and recv it by the AF_PACKET socket.
  */
-static int arp_solicit(struct tpa_ip *ip, struct tpa_worker *worker)
-{
-	struct arp_solicit_hdr *hdr;
-	struct packet *pkt;
-	int ret;
+static int arp_solicit(struct tpa_ip *ip, struct tpa_worker *worker) {
+    struct arp_solicit_hdr *hdr;
+    struct packet *pkt;
+    int ret;
 
-	pkt = packet_alloc(generic_pkt_pool);
-	if (pkt == NULL)
-		return -ERR_PKT_ALLOC_FAIL;
+    pkt = packet_alloc(generic_pkt_pool);
+    if (pkt == NULL) return -ERR_PKT_ALLOC_FAIL;
 
-	hdr = (struct arp_solicit_hdr *)rte_pktmbuf_append(&pkt->mbuf, sizeof(*hdr));
-	if (!hdr) {
-		packet_free(pkt);
-		return -ERR_PKT_PREPEND_HDR;
-	}
+    hdr = (struct arp_solicit_hdr *)rte_pktmbuf_append(&pkt->mbuf, sizeof(*hdr));
+    if (!hdr) {
+        packet_free(pkt);
+        return -ERR_PKT_PREPEND_HDR;
+    }
 
-	arp_init_hdr(hdr, ip);
+    arp_init_hdr(hdr, ip);
 
-	ret = dev_port_txq_enqueue(0, worker->queue, pkt);
-	if (unlikely(ret < 0))
-		packet_free(pkt);
+    ret = dev_port_txq_enqueue(0, worker->queue, pkt);
+    if (unlikely(ret < 0)) packet_free(pkt);
 
-	return ret;
+    return ret;
 }
 
-static int arp_solicit_by_socket(int fd, struct tpa_ip *ip)
-{
+static int arp_solicit_by_socket(int fd, struct tpa_ip *ip) {
 #if defined(__linux__)
-	struct arp_solicit_hdr hdr;
-	struct sockaddr_ll addr;
+    struct arp_solicit_hdr hdr;
+    struct sockaddr_ll addr;
 
-	arp_init_hdr(&hdr, ip);
+    arp_init_hdr(&hdr, ip);
 
-	memset(&addr, 0, sizeof(addr));
-	addr.sll_ifindex = if_nametoindex(dev.name);
+    memset(&addr, 0, sizeof(addr));
+    addr.sll_ifindex = if_nametoindex(dev.name);
 
-	if (sendto(fd, &hdr, sizeof(hdr), 0, (struct sockaddr *)&addr, sizeof(addr)) < sizeof(hdr)) {
-		LOG_WARN("failed to send arp request: %s", strerror(errno));
-		return -1;
-	}
+    if (sendto(fd, &hdr, sizeof(hdr), 0, (struct sockaddr *)&addr, sizeof(addr)) < sizeof(hdr)) {
+        LOG_WARN("failed to send arp request: %s", strerror(errno));
+        return -1;
+    }
 
-	return 0;
+    return 0;
 #else
-	(void)fd;
-	(void)ip;
-	errno = ENOTSUP;
-	return -1;
+    (void)fd;
+    (void)ip;
+    errno = ENOTSUP;
+    return -1;
 #endif
 }
 
-int arp_handle_reply(uint8_t *pkt, size_t len)
-{
-	struct rte_arp_hdr *arp;
-	struct tpa_ip ip;
+int arp_handle_reply(uint8_t *pkt, size_t len) {
+    struct rte_arp_hdr *arp;
+    struct tpa_ip ip;
 
-	arp = (struct rte_arp_hdr *)(pkt + sizeof(struct rte_ether_hdr));
+    arp = (struct rte_arp_hdr *)(pkt + sizeof(struct rte_ether_hdr));
 
-	tpa_ip_set_ipv4(&ip, arp->arp_data.arp_sip);
-	neigh_handle_reply(&ip, arp->arp_data.arp_sha.addr_bytes);
+    tpa_ip_set_ipv4(&ip, arp->arp_data.arp_sip);
+    neigh_handle_reply(&ip, arp->arp_data.arp_sha.addr_bytes);
 
-	return 0;
+    return 0;
 }
 
-static int arp_handle_request(struct tpa_worker *worker, struct rte_arp_hdr *request, int port_id)
-{
-	struct rte_arp_hdr *reply;
-	struct rte_ether_hdr *eth;
-	struct packet *pkt;
-	struct tpa_ip ip;
-	int err;
+static int arp_handle_request(struct tpa_worker *worker, struct rte_arp_hdr *request, int port_id) {
+    struct rte_arp_hdr *reply;
+    struct rte_ether_hdr *eth;
+    struct packet *pkt;
+    struct tpa_ip ip;
+    int err;
 
-	if (request->arp_data.arp_tip != dev.ip4)
-		return 0;
+    if (request->arp_data.arp_tip != dev.ip4) return 0;
 
-	pkt = packet_alloc(generic_pkt_pool);
-	if (!pkt)
-		return -ERR_PKT_ALLOC_FAIL;
+    pkt = packet_alloc(generic_pkt_pool);
+    if (!pkt) return -ERR_PKT_ALLOC_FAIL;
 
-	/* learn remote arp */
-	tpa_ip_set_ipv4(&ip, request->arp_data.arp_sip);
-	neigh_update(&ip, request->arp_data.arp_sha.addr_bytes);
+    /* learn remote arp */
+    tpa_ip_set_ipv4(&ip, request->arp_data.arp_sip);
+    neigh_update(&ip, request->arp_data.arp_sha.addr_bytes);
 
-	eth = (struct rte_ether_hdr *)rte_pktmbuf_append(&pkt->mbuf, sizeof(*eth));
-	if (!eth) {
-		packet_free(pkt);
-		return -ERR_PKT_PREPEND_HDR;
-	}
-	rte_ether_addr_copy(&dev.mac, ETH_SRC_ADDR(eth));
-	rte_ether_addr_copy(&request->arp_data.arp_sha, ETH_DST_ADDR(eth));
-	eth->ether_type = htons(RTE_ETHER_TYPE_ARP);
+    eth = (struct rte_ether_hdr *)rte_pktmbuf_append(&pkt->mbuf, sizeof(*eth));
+    if (!eth) {
+        packet_free(pkt);
+        return -ERR_PKT_PREPEND_HDR;
+    }
+    rte_ether_addr_copy(&dev.mac, ETH_SRC_ADDR(eth));
+    rte_ether_addr_copy(&request->arp_data.arp_sha, ETH_DST_ADDR(eth));
+    eth->ether_type = htons(RTE_ETHER_TYPE_ARP);
 
-	reply = (struct rte_arp_hdr *)rte_pktmbuf_append(&pkt->mbuf, sizeof(*reply));
-	if (!reply) {
-		packet_free(pkt);
-		return -ERR_PKT_PREPEND_HDR;
-	}
-	reply->arp_hardware = htons(RTE_ARP_HRD_ETHER);
-	reply->arp_protocol = htons(RTE_ETHER_TYPE_IPV4);
-	reply->arp_hlen = 6;
-	reply->arp_plen = 4;
-	reply->arp_opcode = htons(RTE_ARP_OP_REPLY);
+    reply = (struct rte_arp_hdr *)rte_pktmbuf_append(&pkt->mbuf, sizeof(*reply));
+    if (!reply) {
+        packet_free(pkt);
+        return -ERR_PKT_PREPEND_HDR;
+    }
+    reply->arp_hardware = htons(RTE_ARP_HRD_ETHER);
+    reply->arp_protocol = htons(RTE_ETHER_TYPE_IPV4);
+    reply->arp_hlen = 6;
+    reply->arp_plen = 4;
+    reply->arp_opcode = htons(RTE_ARP_OP_REPLY);
 
-	rte_ether_addr_copy(ETH_SRC_ADDR(eth), &reply->arp_data.arp_sha);
-	rte_ether_addr_copy(ETH_DST_ADDR(eth), &reply->arp_data.arp_tha);
-	reply->arp_data.arp_sip = dev.ip4;
-	reply->arp_data.arp_tip = request->arp_data.arp_sip;
+    rte_ether_addr_copy(ETH_SRC_ADDR(eth), &reply->arp_data.arp_sha);
+    rte_ether_addr_copy(ETH_DST_ADDR(eth), &reply->arp_data.arp_tha);
+    reply->arp_data.arp_sip = dev.ip4;
+    reply->arp_data.arp_tip = request->arp_data.arp_sip;
 
-	rte_pktmbuf_append(&pkt->mbuf, RTE_ETHER_MIN_LEN - sizeof(*eth) - sizeof(*reply));
-	err = dev_port_txq_enqueue(port_id, worker->queue, pkt);
-	if (err)
-		packet_free(pkt);
+    rte_pktmbuf_append(&pkt->mbuf, RTE_ETHER_MIN_LEN - sizeof(*eth) - sizeof(*reply));
+    err = dev_port_txq_enqueue(port_id, worker->queue, pkt);
+    if (err) packet_free(pkt);
 
-	return err;
+    return err;
 }
 
-int arp_input(struct tpa_worker *worker, struct packet *pkt)
-{
-	struct rte_arp_hdr *arp;
-	int ret = 0;
+int arp_input(struct tpa_worker *worker, struct packet *pkt) {
+    struct rte_arp_hdr *arp;
+    int ret = 0;
 
-	arp = (struct rte_arp_hdr *)(packet_data(pkt) + pkt->l3_off);
-	if (arp->arp_hlen != 6 || arp->arp_plen != 4)
-		return -WARN_ARP_INVALID_LEN;
+    arp = (struct rte_arp_hdr *)(packet_data(pkt) + pkt->l3_off);
+    if (arp->arp_hlen != 6 || arp->arp_plen != 4) return -WARN_ARP_INVALID_LEN;
 
-	switch (ntohs(arp->arp_opcode)) {
-	case RTE_ARP_OP_REQUEST:
-		WORKER_STATS_INC(worker, ARP_RECV_REQUEST);
-		ret = arp_handle_request(worker, arp, pkt->port_id);
-		break;
+    switch (ntohs(arp->arp_opcode)) {
+    case RTE_ARP_OP_REQUEST:
+        WORKER_STATS_INC(worker, ARP_RECV_REQUEST);
+        ret = arp_handle_request(worker, arp, pkt->port_id);
+        break;
 
-	case RTE_ARP_OP_REPLY:
-		WORKER_STATS_INC(worker, ARP_RECV_REPLY);
-		ret = arp_handle_reply((uint8_t *)arp, sizeof(struct rte_arp_hdr));
-		break;
+    case RTE_ARP_OP_REPLY:
+        WORKER_STATS_INC(worker, ARP_RECV_REPLY);
+        ret = arp_handle_reply((uint8_t *)arp, sizeof(struct rte_arp_hdr));
+        break;
 
-	default:
-		ret = -WARN_ARP_INVALID_OP;
-		break;
-	}
+    default:
+        ret = -WARN_ARP_INVALID_OP;
+        break;
+    }
 
-	return ret;
+    return ret;
 }
 
-static char *skip_word(char *p)
-{
-	while (*p && *p == ' ')
-		p++;
+static char *skip_word(char *p) {
+    while (*p && *p == ' ')
+        p++;
 
-	while (*p && *p != ' ')
-		p++;
+    while (*p && *p != ' ')
+        p++;
 
-	while (*p && *p == ' ')
-		p++;
+    while (*p && *p == ' ')
+        p++;
 
-	return p;
+    return p;
 }
 
-static char *skip_words(char *p, int count)
-{
-	while (count--)
-		p = skip_word(p);
+static char *skip_words(char *p, int count) {
+    while (count--)
+        p = skip_word(p);
 
-	return p;
+    return p;
 }
 
-static void arp_cache_init(void)
-{
-	FILE *f;
-	union {
-		uint32_t raw;
-		uint8_t  bytes[4];
-	} ip4;
-	struct tpa_ip ip;
-	uint8_t mac[6];
-	char buf[1024];
-	char *eth;
-	char *p;
+static void arp_cache_init(void) {
+    FILE *f;
+    union {
+        uint32_t raw;
+        uint8_t bytes[4];
+    } ip4;
+    struct tpa_ip ip;
+    uint8_t mac[6];
+    char buf[1024];
+    char *eth;
+    char *p;
 
-	if (getenv("TPA_ARP_SKIP_CACHE_INIT"))
-		return;
+    if (getenv("TPA_ARP_SKIP_CACHE_INIT")) return;
 
 #if defined(__linux__)
-	f = fopen("/proc/net/arp", "r");
-	if (!f) {
-		LOG_ERR("failed to open neigh proc file");
-		return;
-	}
+    f = fopen("/proc/net/arp", "r");
+    if (!f) {
+        LOG_ERR("failed to open neigh proc file");
+        return;
+    }
 #else
-	LOG_WARN("ARP cache bootstrap is not implemented on this platform");
-	return;
+    LOG_WARN("ARP cache bootstrap is not implemented on this platform");
+    return;
 #endif
 
-	while (fgets(buf, sizeof(buf), f)) {
-		if (sscanf(buf, "%hhu.%hhu.%hhu.%hhu", &ip4.bytes[0],
-				&ip4.bytes[1], &ip4.bytes[2], &ip4.bytes[3]) != 4)
-			continue;
+    while (fgets(buf, sizeof(buf), f)) {
+        if (sscanf(buf, "%hhu.%hhu.%hhu.%hhu", &ip4.bytes[0], &ip4.bytes[1], &ip4.bytes[2], &ip4.bytes[3]) != 4) continue;
 
-		p = skip_words(buf, 3);
-		if (sscanf(p, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
-				&mac[0], &mac[1], &mac[2],
-				&mac[3], &mac[4], &mac[5]) != 6)
-			continue;
+        p = skip_words(buf, 3);
+        if (sscanf(p, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]) != 6) continue;
 
-		if (strlen(dev.name)) {
-			eth = skip_words(p, 2);
-			p = strchr(eth, '\n');
-			if (p)
-				*p = '\0';
-			if (strcmp(eth, dev.name))
-				continue;
-		}
+        if (strlen(dev.name)) {
+            eth = skip_words(p, 2);
+            p = strchr(eth, '\n');
+            if (p) *p = '\0';
+            if (strcmp(eth, dev.name)) continue;
+        }
 
-		neigh_update(tpa_ip_set_ipv4(&ip, ip4.raw), mac);
-	}
+        neigh_update(tpa_ip_set_ipv4(&ip, ip4.raw), mac);
+    }
 
-	/* for supporting loopback mode */
-	neigh_update(tpa_ip_set_ipv4(&ip, dev.ip4), dev.mac.addr_bytes);
+    /* for supporting loopback mode */
+    neigh_update(tpa_ip_set_ipv4(&ip, dev.ip4), dev.mac.addr_bytes);
 
-	fclose(f);
+    fclose(f);
 }
 
-static int cmd_arp(struct shell_cmd_info *cmd)
-{
-	neigh_dump(cmd->reply);
+static int cmd_arp(struct shell_cmd_info *cmd) {
+    neigh_dump(cmd->reply);
 
-	return 0;
+    return 0;
 }
 
 static const struct shell_cmd arp = {
-	.name    = "arp",
-	.handler = cmd_arp,
+    .name = "arp",
+    .handler = cmd_arp,
 };
 
-static int arp_init(void)
-{
-	if (dev.ip4 == 0)
-		return ND_SKIP;
+static int arp_init(void) {
+    if (dev.ip4 == 0) return ND_SKIP;
 
-	arp_cache_init();
-	shell_register_cmd(&arp);
+    arp_cache_init();
+    shell_register_cmd(&arp);
 
 #if defined(__linux__)
-	return socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
+    return socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
 #else
-	errno = ENOTSUP;
-	return -1;
+    errno = ENOTSUP;
+    return -1;
 #endif
 }
 
 const struct neigh_ops arp_ops = {
-	.nd_init = arp_init,
-	.nd_solicit = arp_solicit,
-	.nd_solicit_by_socket = arp_solicit_by_socket,
-	.nd_handle_reply = arp_handle_reply,
+    .nd_init = arp_init,
+    .nd_solicit = arp_solicit,
+    .nd_solicit_by_socket = arp_solicit_by_socket,
+    .nd_handle_reply = arp_handle_reply,
 };
